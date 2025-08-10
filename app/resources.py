@@ -1,122 +1,76 @@
-# app/resources.py
+"""
+Resources / Routes for Sentiment Analysis API
+"""
 
-import os
 import asyncio
-from functools import lru_cache
 
-import tensorflow as tf
 from flask import request
 from flask_restx import Resource, Namespace
 
-from .sentiment import SentimentAnalysis
-from .api_models import analyze_model, bias_model
-from .bias import get_bias
+from app import config
+from app.models import load_model_variant
+from app.sentiment import SentimentAnalysis
 
 # Ensure custom layer is registered for deserialization (needed for ensemble.keras)
-from .ensemble_helpers.make_ensemble import ProbToLogit  # noqa: F401
-
-DEFAULT_ARTICLE_COUNT = 10
-
-# ---- Model selection (light | medium | ensemble) ----
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-MODEL_PATHS = {
-    "light":    os.path.join(BASE_DIR, "models", "model_light.keras"),
-    "medium":   os.path.join(BASE_DIR, "models", "model_medium.keras"),
-    "ensemble": os.path.join(BASE_DIR, "models", "model_ensemble.keras"),
-}
-# resources.py
-@lru_cache(maxsize=3)
-def load_model_variant(variant: str):
-    path = MODEL_PATHS.get(variant, MODEL_PATHS["medium"])
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Model not found at {path}")
-    return tf.keras.models.load_model(path, compile=False)  # ← add compile=False
+from app.utils.ensemble import ProbToLogit  # noqa: F401
 
 
-def build_service(asset: str, max_articles: int, variant: str, requires_ticker: bool):
+def _build_service(ticker: str, max_articles: int, variant: str):
     model = load_model_variant(variant)
     return SentimentAnalysis(
-        asset=asset,
+        ticker=ticker,
         model=model,
         max_articles=max_articles,
-        requires_ticker=requires_ticker,
         ensemble=(variant == "ensemble"),
     )
 
+
 # ---- Namespaces ----
-api = Namespace("Sentiment Analysis")
-apib = Namespace("Bias Analysis")
+api = Namespace("News Headline Sentiment Analysis")
+
 
 # ---- Endpoints ----
-@api.route('/ticker')
+# Supports:
+#   /ticker/TSLA
+#   /ticker/TSLA?max_articles=25&model_variant=ensemble
+#   /ticker/TSLA/25
+#   /ticker/TSLA/25/ensemble
+@api.route(
+    "/ticker/<string:ticker>",
+    "/ticker/<string:ticker>/<int:max_articles>",
+    "/ticker/<string:ticker>/<int:max_articles>/<string:variant>",
+)
 class TickerSentimentAPI(Resource):
-    """Returns ticker-specific sentiment analysis"""
-    @api.expect(analyze_model)
+    """Returns ticker-specific sentiment analysis (GET)"""
+
     @api.response(200, "Successfully Retrieved Sentiment Analysis")
     @api.response(400, "Failed to Retrieve Sentiment Analysis")
-    def post(self):
+    def get(self, ticker, max_articles=None, variant=None):
         try:
-            data = request.json or {}
-            asset = data.get('asset')
-            max_articles = data.get('max_articles', DEFAULT_ARTICLE_COUNT)
-            variant = data.get('model_variant', 'medium')  # "light" | "medium" | "ensemble"
+            # Allow query-string overrides or defaults if not in the path
+            if max_articles is None:
+                max_articles = request.args.get(
+                    "max_articles", config.MAX_ARTICLE_COUNT, type=int
+                )
+            if variant is None:
+                # accept both 'model_variant' (old name) and 'variant'
+                variant = request.args.get("model_variant") or request.args.get("variant") or "medium"
 
-            svc = build_service(asset, max_articles, variant, requires_ticker=True)
+            # Basic validation for variant
+            if variant not in config.MODEL_VARIANTS:
+                return {
+                    "success": 0,
+                    "body": f"Invalid model_variant '{variant}'. Choose one of {sorted(allowed_variants)}."
+                }, 400
+
+            svc = _build_service(
+                ticker=ticker,
+                max_articles=max_articles,
+                variant=variant
+            )
+
             result = asyncio.run(svc.analyze_sentiment())
-            return {'success': 1, 'body': result}, 200
+            return {"success": 1, "body": result}, 200
+
         except Exception as e:
-            return {'success': 0, 'body': str(e)}, 400
-
-@api.route('/company')
-class CompanySentimentAPI(Resource):
-    """Returns company-name sentiment analysis (no ticker required)"""
-    @api.expect(analyze_model)
-    @api.response(200, "Successfully Retrieved Sentiment Analysis")
-    @api.response(400, "Failed to Retrieve Sentiment Analysis")
-    def post(self):
-        try:
-            data = request.json or {}
-            asset = data.get('asset')
-            max_articles = data.get('max_articles', DEFAULT_ARTICLE_COUNT)
-            variant = data.get('model_variant', 'medium')
-
-            svc = build_service(asset, max_articles, variant, requires_ticker=False)
-            result = asyncio.run(svc.analyze_sentiment())
-            return {'success': 1, 'body': result}, 200
-        except Exception as e:
-            return {'success': 0, 'body': str(e)}, 400
-
-@api.route('/general')
-class GeneralSentimentAPI(Resource):
-    """Returns general-topic sentiment analysis (no ticker required)"""
-    @api.expect(analyze_model)
-    @api.response(200, "Successfully Retrieved Sentiment Analysis")
-    @api.response(400, "Failed to Retrieve Sentiment Analysis")
-    def post(self):
-        try:
-            data = request.json or {}
-            asset = data.get('asset')
-            max_articles = data.get('max_articles', DEFAULT_ARTICLE_COUNT)
-            variant = data.get('model_variant', 'medium')
-
-            svc = build_service(asset, max_articles, variant, requires_ticker=False)
-            result = asyncio.run(svc.analyze_sentiment())
-            return {'success': 1, 'body': result}, 200
-        except Exception as e:
-            return {'success': 0, 'body': str(e)}, 400
-
-@apib.route('')
-class BiasAPI(Resource):
-    """Returns outlet bias analysis"""
-    @apib.expect(bias_model)
-    @apib.response(200, "Successfully Retrieved Bias Analysis")
-    @apib.response(400, "Failed to Retrieve Bias Analysis")
-    def post(self):
-        try:
-            data = request.json or {}
-            outlet = data.get('outlet')
-            result = get_bias(outlet)
-            return {'success': 1, 'body': result}, 200
-        except Exception as e:
-            return {'success': 0, 'body': str(e)}, 400
+            return {"success": 0, "body": str(e)}, 400
