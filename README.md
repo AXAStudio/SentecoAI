@@ -1,4 +1,4 @@
-# Senteco AI
+# SentecoAI Market Intelligence API
 
 [![Built with TensorFlow](https://img.shields.io/badge/Built%20with-TensorFlow-orange?logo=tensorflow)](https://www.tensorflow.org/)
 [![Python Version](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)](https://www.python.org/)
