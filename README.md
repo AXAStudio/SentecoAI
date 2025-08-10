@@ -68,24 +68,7 @@ It uses a deep learning model (BiLSTM + TensorFlow) to process market news headl
 
 Input → Vectorizer → Embedding(64) → BiLSTM(64) → Dense(64, relu) → Dense(1, sigmoid)
 
-## Installation
-```bash
-git clone https://github.com/AXAStudio/senteco-ai.git
-cd senteco-ai
-pip install -r requirements.txt
-```
-## Running the API
-```bash
-flask run
-```
 ## Roadmap
 
- - Add Ticker based sentiment analysis
- - Support multi-language headline analysis
- - Support two options for models to run the api
-   - Lightweight model
-   - Heavyweight model
+ - Update documentation regarding newly added models, ouput format
 
-
-
-## Senteco AI – Turning financial news into actionable market intelligence.
