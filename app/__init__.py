@@ -18,7 +18,7 @@ api_prefix = f"/api/{sem_ver}"
 def create_app() -> Flask:
     """Create the Flask app"""
     app = Flask(__name__)
-    api.init_app(app, title="Headline Sentiment Analysis API")
+    api.init_app(app, title="SentecAI | Headline Sentiment Analysis API")
     api.add_namespace(ticker_sentiment_analysis_ns, path=f"{api_prefix}/sentiment")
 
     return app

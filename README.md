@@ -1,11 +1,11 @@
-# SentecoAI Market Intelligence API
+# SentecAI Market Intelligence API
 
 [![Built with TensorFlow](https://img.shields.io/badge/Built%20with-TensorFlow-orange?logo=tensorflow)](https://www.tensorflow.org/)
 [![Python Version](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Framework-Flask-lightgrey?logo=flask)](https://flask.palletsprojects.com/)
 [![NLP](https://img.shields.io/badge/NLP-Financial%20Sentiment-yellow)](#)
 
-Senteco AI is an AI-powered financial news sentiment analysis system.  
+Sentec AI is an AI-powered financial news sentiment analysis system.  
 It uses a deep learning model (BiLSTM + TensorFlow) to process market news headlines in real time, returning structured sentiment scores for companies, tickers, and assets.
 
 ---
