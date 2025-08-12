@@ -60,7 +60,7 @@ class TickerSentimentAPI(Resource):
             if variant not in config.MODEL_VARIANTS:
                 return {
                     "success": 0,
-                    "body": f"Invalid model_variant '{variant}'. Choose one of {sorted(allowed_variants)}."
+                    "body": f"Invalid model_variant '{variant}'. Choose one of {sorted(config.MODEL_VARIANTS)}."
                 }, 400
 
             svc = _build_service(
