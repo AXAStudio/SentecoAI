@@ -7,8 +7,7 @@ import os
 from functools import lru_cache
 from tensorflow.keras.models import load_model
 
-
-MODEL_FILE_FORMAT = "model_{}.keras"
+from app.config import MODEL_FILE_FORMAT
 
 
 @lru_cache(maxsize=3)
