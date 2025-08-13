@@ -1,3 +1,3 @@
 from flask_restx import Api
 
-api = Api(doc="/docs", title="SentecAI | Headline Sentiment Analysis API")
+api = Api(doc="/", title="SentecAI | Headline Sentiment Analysis API")
