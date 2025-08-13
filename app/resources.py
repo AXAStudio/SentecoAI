@@ -15,13 +15,16 @@ from app.sentiment import SentimentAnalysis
 from app.utils.ensemble import ProbToLogit  # noqa: F401
 
 
-def _build_service(ticker: str, max_articles: int, variant: str):
+def _build_service(
+        ticker: str,
+        max_articles: int,
+        variant: str = "medium"
+) -> SentimentAnalysis:
     model = load_model_variant(variant=variant)
     return SentimentAnalysis(
         ticker=ticker,
         model=model,
         max_articles=max_articles,
-        ensemble=(variant == "ensemble"),
     )
 
 
@@ -32,41 +35,30 @@ api = Namespace("News Headline Sentiment Analysis")
 # ---- Endpoints ----
 # Supports:
 #   /ticker/TSLA
-#   /ticker/TSLA?max_articles=25&model_variant=ensemble
 #   /ticker/TSLA/25
-#   /ticker/TSLA/25/ensemble
 @api.route(
     "/ticker/<string:ticker>",
-    "/ticker/<string:ticker>/<int:max_articles>",
-    "/ticker/<string:ticker>/<int:max_articles>/<string:variant>",
+    "/ticker/<string:ticker>/<int:max_articles>"
 )
 class TickerSentimentAPI(Resource):
     """Returns ticker-specific sentiment analysis (GET)"""
 
     @api.response(200, "Successfully Retrieved Sentiment Analysis")
     @api.response(400, "Failed to Retrieve Sentiment Analysis")
-    def get(self, ticker, max_articles=None, variant=None):
+    def get(self, ticker, max_articles=None):
+        """
+        Get sentiment analysis for a given ticker symbol (Max-Articles: 100).
+        """
         try:
             # Allow query-string overrides or defaults if not in the path
             if max_articles is None:
                 max_articles = request.args.get(
-                    "max_articles", config.MAX_ARTICLE_COUNT, type=int
+                    "max_articles", config.DEFAULT_ARTICLE_COUNT, type=int
                 )
-            if variant is None:
-                # accept both 'model_variant' (old name) and 'variant'
-                variant = request.args.get("model_variant") or request.args.get("variant") or "medium"
-
-            # Basic validation for variant
-            if variant not in config.MODEL_VARIANTS:
-                return {
-                    "success": 0,
-                    "body": f"Invalid model_variant '{variant}'. Choose one of {sorted(config.MODEL_VARIANTS)}."
-                }, 400
 
             svc = _build_service(
                 ticker=ticker,
-                max_articles=max_articles,
-                variant=variant
+                max_articles=max_articles
             )
 
             result = asyncio.run(svc.analyze_sentiment())
