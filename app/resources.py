@@ -16,7 +16,7 @@ from app.utils.ensemble import ProbToLogit  # noqa: F401
 
 
 def _build_service(ticker: str, max_articles: int, variant: str):
-    model = load_model_variant(variant)
+    model = load_model_variant(variant=variant)
     return SentimentAnalysis(
         ticker=ticker,
         model=model,

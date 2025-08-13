@@ -11,9 +11,10 @@ from app.config import MODEL_FILE_FORMAT
 
 
 @lru_cache(maxsize=3)
-def load_model_variant(variant: str = 'light'):
-    here = os.path.dirname(os.path.realpath(__file__))
-    path = os.path.join(here, MODEL_FILE_FORMAT.format(variant))
+def load_model_variant(variant: str = 'light', path = None):
+    if path is None:
+        here = os.path.dirname(os.path.realpath(__file__))
+        path = os.path.join(here, MODEL_FILE_FORMAT.format(variant))
 
     if not os.path.exists(path):
         raise FileNotFoundError(f"Model variant '{variant}' not found at {path}")
